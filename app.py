@@ -86,7 +86,7 @@ class King(ChessPiece):
 
 class ChessGame:
     def __init__(self):
-        self.board = assign_chess_board_values()
+        self.board = []
 
 
 def create_box(surface, x, y, width, height, color):
