@@ -56,33 +56,27 @@ class Pawn(ChessPiece):
 
     def available_moves(self, board):
         moves = []
+
+        move_up = 1 if self.color == ChessValues.WHITE else 1
+
         if self.color == ChessValues.WHITE:
             if board[self.y + 1][self.x] == 0 or board[self.y + 1][self.x] == 0:
                 moves.append((0, 1))
-            if self.y == 1:
-                if board[self.y + 2][self.x] == 0 or board[self.y + 2][self.x] == 0:
-                    moves.append((0, 2))
-            if self.x > 0:
-                if board[self.y + 1][self.x - 1] != 0 and board[self.y + 1][self.x - 1].color == ChessValues.BLACK:
-                    moves.append((-1, 1))
-            if self.x < 7:
-                if board[self.y + 1][self.x + 1] != 0 and board[self.y + 1][self.x + 1].color == ChessValues.BLACK:
-                    moves.append((1, 1))
-            return moves
+        else:
+            if self.color == ChessValues.BLACK:
+                if board[self.y - 1][self.x] == 0 or board[self.y - 1][self.x] == 0:
+                    moves.append((0, -1))
 
-        if self.color == ChessValues.BLACK:
-            if board[self.y - 1][self.x] == 0 or board[self.y - 1][self.x] == 0:
-                moves.append((0, -1))
-            if self.y == 1:
-                if board[self.y - 2][self.x] == 0 or board[self.y - 2][self.x] == 0:
-                    moves.append((0, -2))
-            if self.x > 0:
-                if board[self.y - 1][self.x - 1] != 0 and board[self.y - 1][self.x - 1].color == ChessValues.WHITE:
-                    moves.append((-1, -1))
-            if self.x < 7:
-                if board[self.y - 1][self.x + 1] != 0 and board[self.y - 1][self.x + 1].color == ChessValues.WHITE:
-                    moves.append((1, -1))
-            return moves
+        if self.y == 1:
+            if board[self.y + 2 * move_up][self.x] == 0 or board[self.y + 2 * move_up][self.x] == 0:
+                moves.append((0, 2 * move_up))
+        if self.x > 0:
+            if board[self.y + 1 * move_up][self.x - 1] != 0 and board[self.y + 1 * move_up][self.x - 1].color == ChessValues.BLACK:
+                moves.append((-1, 1 * move_up))
+        if self.x < 7:
+            if board[self.y + 1 * move_up][self.x + 1] != 0 and board[self.y + 1 * move_up][self.x + 1].color == ChessValues.BLACK:
+                moves.append((1, 1 * move_up))
+        return moves
 
 
 class King(ChessPiece):
