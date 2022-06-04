@@ -30,10 +30,19 @@ def assign_chess_board_values():
     return board
 
 
+#   ------------------------------------------------------------------
+#   ---------------------------Chess Pieces---------------------------
+#   ------------------------------------------------------------------
+
+
 class ChessPiece:
     def __init__(self, color, x, y):
         self.piece = self.__class__.__name__
         self.color = color
+        self.x = x
+        self.y = y
+
+    def move(self, x, y):
         self.x = x
         self.y = y
 
@@ -51,7 +60,6 @@ class Pawn(ChessPiece):
         moves = []
 
         move_up = self.color.value
-        print(move_up)
         if isinstance(board[self.y + move_up][self.x], EmptyPiece):
             moves.append((0, move_up))
 
@@ -112,7 +120,7 @@ class Rook(ChessPiece):
                     if 7 >= self.y + i * j[0] >= 0 and 7 >= self.x + i * j[1] >= 0:
                         if board[self.y + i * j[0]][self.x + i * j[1]].color is not self.color:
                             moves.append((i * j[1], i * j[0]))
-                        if board[self.y + i * j[0]][self.x + i * j[1]].color.value != ChessValues.EMPTY:
+                        if board[self.y + i * j[0]][self.x + i * j[1]].color != ChessValues.EMPTY:
                             move = False
                     else:
                         move = False
@@ -133,7 +141,7 @@ class Bishop(ChessPiece):
                     if 7 >= self.y + i * j[0] >= 0 and 7 >= self.x + i * j[1] >= 0:
                         if board[self.y + i * j[0]][self.x + i * j[1]].color is not self.color:
                             moves.append((i * j[1], i * j[0]))
-                        if board[self.y + i * j[0]][self.x + i * j[1]].color.value != ChessValues.EMPTY:
+                        if board[self.y + i * j[0]][self.x + i * j[1]].color != ChessValues.EMPTY:
                             move = False
                     else:
                         move = False
@@ -173,6 +181,11 @@ class Queen(ChessPiece):
                     else:
                         move = False
         return moves
+
+
+#   ------------------------------------------------------------------
+#   ----------------------------Game Logic----------------------------
+#   ------------------------------------------------------------------
 
 
 class ChessGame:
@@ -221,18 +234,30 @@ class ChessGame:
                         self.checkered_board[y][x] = ChessValues.MOVING
                         self.moving = (x, y)
                         for move in moves:
-                            print('x: ', (move[0]+x), ' | y: ', (move[1] + y))
-                            if self.checkered_board[y + move[1]][x + move[0]] == ChessValues.WHITE:
-                                self.checkered_board[y + move[1]][x + move[0]] = ChessValues.MOVE_WHITE
+                            if self.board[y + move[1]][x + move[0]].color.value == -1 * self.turn.value:
+                                self.checkered_board[y + move[1]][x + move[0]] = ChessValues.CAPTURE
                             else:
-                                self.checkered_board[y + move[1]][x + move[0]] = ChessValues.MOVE_BLACK
+                                if self.checkered_board[y + move[1]][x + move[0]] == ChessValues.WHITE:
+                                    self.checkered_board[y + move[1]][x + move[0]] = ChessValues.MOVE_WHITE
+                                else:
+                                    self.checkered_board[y + move[1]][x + move[0]] = ChessValues.MOVE_BLACK
             else:
                 if self.board[y][x].color == self.turn:
                     self.checkered_board = assign_chess_board_values()
                     self.moving = None
                     self.move(point)
+                elif ChessValues.MOVE_WHITE.value <= self.checkered_board[y][x].value <= ChessValues.CAPTURE.value:
+                    self.board[y][x] = self.board[self.moving[1]][self.moving[0]]
+                    self.board[y][x].move(x, y)
+                    self.board[self.moving[1]][self.moving[0]] = EmptyPiece()
+                    self.moving = None
+                    self.checkered_board = assign_chess_board_values()
+                    self.turn = ChessValues(self.turn.value * -1)
 
 
+#   ------------------------------------------------------------------
+#   --------------------------GUI Functions---------------------------
+#   ------------------------------------------------------------------
 
 
 def draw_box(surface, x, y, width, height, color):
@@ -256,32 +281,56 @@ def draw_chess_board(surface, board):
 
     for y in range(8):
         for x in range(8):
-            if ChessValues.WHITE == board[y][x]:
-                draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
-                         width=box_size,
-                         height=box_size, color=constants.COLOR_WHITE)
-            elif ChessValues.BLACK == board[y][x]:
-                draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
-                         width=box_size,
-                         height=box_size, color=constants.COLOR_GREEN)
-            elif ChessValues.MOVE_WHITE == board[y][x]:
-                draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
-                         width=box_size,
-                         height=box_size, color=constants.COLOR_WHITE_MOVE)
-            elif ChessValues.MOVE_BLACK == board[y][x]:
-                draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
-                         width=box_size,
-                         height=box_size, color=constants.COLOR_GREEN_MOVE)
+            match board[y][x]:
+                case ChessValues.WHITE:
+                    draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
+                             width=box_size,
+                             height=box_size, color=constants.COLOR_WHITE)
+                case ChessValues.BLACK:
+                    draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
+                             width=box_size,
+                             height=box_size, color=constants.COLOR_GREEN)
+                case ChessValues.MOVE_WHITE:
+                    draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
+                             width=box_size,
+                             height=box_size, color=constants.COLOR_WHITE_MOVE)
+                case ChessValues.MOVE_BLACK:
+                    draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
+                             width=box_size,
+                             height=box_size, color=constants.COLOR_GREEN_MOVE)
+                case ChessValues.MOVING:
+                    draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
+                             width=box_size,
+                             height=box_size, color=constants.COLOR_MOVE)
+                case ChessValues.CAPTURE:
+                    draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
+                             width=box_size,
+                             height=box_size, color=constants.COLOR_CAPTURE)
 
 
-def draw_image(surface, x, y, size, img_name):
-    img = pygame.image.load(f"{constants.CHESS_PIECE_RES_PATH}{img_name}")
-    img = pygame.transform.scale(img, (size, size))
+def draw_image(surface, x, y, img):
     surface.blit(img, (x, y))
-    pygame.display.flip()
 
 
-def draw_chess_pieces(surface, board):
+def load_image(size, img_name):
+    img = pygame.image.load(f"{constants.CHESS_PIECE_RES_PATH}{img_name}.png")
+    img = pygame.transform.scale(img, (size, size))
+    return img
+
+
+def load_images(surface, images):
+    sur_width = surface.get_width()
+    sur_height = surface.get_height()
+
+    min_size = min(sur_height, sur_width)
+    box_size = min_size / 12
+
+    for color in ['Black', 'White']:
+        for piece in ['Pawn', 'Rook', 'Knight', 'Bishop', 'King', 'Queen']:
+            images[f'{piece}{color}'] = load_image(size=(0.9 * box_size), img_name=f'{piece}{color}')
+
+
+def draw_chess_pieces(surface, board, images):
     sur_width = surface.get_width()
     sur_height = surface.get_height()
 
@@ -297,8 +346,9 @@ def draw_chess_pieces(surface, board):
                 else:
                     color = 'Black'
                 draw_image(surface, x=(width_offset + x * box_size + box_size * 0.05),
-                           y=(height_offset + y * box_size + box_size * 0.05), size=box_size * 0.9,
-                           img_name=f'{board[y][x].piece}{color}.png')
+                           y=(height_offset + y * box_size + box_size * 0.05),
+                           img=images[f'{board[y][x].piece}{color}'])
+    pygame.display.flip()
 
 
 def click_on_chess_board(surface, x, y):
@@ -320,7 +370,10 @@ def click_on_chess_board(surface, x, y):
     return None
 
 
-chess_piece_images = []
+#   ------------------------------------------------------------------
+#   -------------------Main variables and game loop-------------------
+#   ------------------------------------------------------------------
+
 
 pygame.init()
 
@@ -328,10 +381,13 @@ screen = pygame.display.set_mode([1920, 1080], pygame.RESIZABLE)
 
 screen.fill(constants.BG_COLOR)
 
+chess_piece_images = {}
+load_images(screen, chess_piece_images)
+
 game = ChessGame(assign_chess_board_values())
 
 draw_chess_board(screen, game.checkered_board)
-draw_chess_pieces(screen, game.board)
+draw_chess_pieces(screen, game.board, chess_piece_images)
 pygame.display.flip()
 
 running = True
@@ -344,14 +400,15 @@ while running:
 
             case pygame.VIDEORESIZE:
                 screen.fill(constants.BG_COLOR)
+                load_images(screen, chess_piece_images)
                 draw_chess_board(screen, game.checkered_board)
-                draw_chess_pieces(screen, game.board)
+                draw_chess_pieces(screen, game.board, chess_piece_images)
                 pygame.display.flip()
 
             case pygame.MOUSEBUTTONDOWN:
                 game.move(click_on_chess_board(screen, event.pos[0], event.pos[1]))
                 draw_chess_board(screen, game.checkered_board)
-                draw_chess_pieces(screen, game.board)
+                draw_chess_pieces(screen, game.board, chess_piece_images)
                 pygame.display.flip()
     time.sleep(0.1)
 
