@@ -17,3 +17,5 @@ CHESS_BOARD = [
     ['Pw', 'Pw', 'Pw', 'Pw', 'Pw', 'Pw', 'Pw', 'Pw'],
     ['Rw', 'Nw', 'Bw', 'Qw', 'Kw', 'Bw', 'Nw', 'Rw'],
 ]
+
+CHESS_PIECE_RES_PATH = "resources/chess/pieces/"

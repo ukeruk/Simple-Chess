@@ -4,6 +4,7 @@
 import pygame
 from enum import Enum
 
+import app
 import constants
 
 
@@ -29,6 +30,7 @@ def assign_chess_board_values():
 
 class ChessPiece:
     def __init__(self, color, x, y):
+        self.piece = self.__class__.__name__
         self.color = color
         self.x = x
         self.y = y
@@ -81,12 +83,12 @@ class King(ChessPiece):
                             moves.append((i, j))
 
         if not self.moved:
-            if type(board[self.y][0]) == type(Rook) and board[self.y][0].color == self.color \
+            if isinstance(board[self.y][0], Rook) and board[self.y][0].color == self.color \
                     and board[self.y][0].moved is False:
                 if board[self.y][1] == 0 and board[self.y][2] == 0 and board[self.y][3] == 0:
                     moves.append((-2, 0))
 
-            if type(board[self.y][7]) == type(Rook) and board[self.y][7].color == self.color \
+            if isinstance(board[self.y][7], Rook) and board[self.y][7].color == self.color \
                     and board[self.y][7].moved is False:
                 if board[self.y][5] == 0 and board[self.y][6] == 0:
                     moves.append((2, 0))
@@ -185,7 +187,7 @@ class ChessGame:
                 elif 'b' in brd[i][j]:
                     color = ChessValues.BLACK
                 else:
-                    self.board.append(empty)
+                    self.board[i].append(empty)
                     continue
                 match brd[i][j][0]:
                     case 'R':
@@ -208,13 +210,13 @@ class ChessGame:
                         break
 
 
-def create_box(surface, x, y, width, height, color):
+def draw_box(surface, x, y, width, height, color):
     box = pygame.Rect((x, y, width, height))
 
     pygame.draw.rect(surface, color, box)
 
 
-def draw_chess_board(surface, chess_board):
+def draw_chess_board(surface, board):
     sur_width = surface.get_width()
     sur_height = surface.get_height()
 
@@ -225,19 +227,46 @@ def draw_chess_board(surface, chess_board):
 
     for y in range(8):
         for x in range(8):
-            if ChessValues.WHITE == chess_board[y][x]:
-                create_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
-                           width=box_size,
-                           height=box_size, color=constants.COLOR_WHITE)
-            elif ChessValues.BLACK == chess_board[y][x]:
-                create_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
-                           width=box_size,
-                           height=box_size, color=constants.COLOR_GREEN)
-            elif ChessValues.MOVE == chess_board[y][x]:
-                create_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
-                           width=box_size,
-                           height=box_size, color=constants.COLOR_YELLOW)
+            if ChessValues.WHITE == board[y][x]:
+                draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
+                         width=box_size,
+                         height=box_size, color=constants.COLOR_WHITE)
+            elif ChessValues.BLACK == board[y][x]:
+                draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
+                         width=box_size,
+                         height=box_size, color=constants.COLOR_GREEN)
+            elif ChessValues.MOVE == board[y][x]:
+                draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
+                         width=box_size,
+                         height=box_size, color=constants.COLOR_YELLOW)
     pygame.display.flip()
+
+
+def draw_image(surface, x, y, size, img_name):
+    img = pygame.image.load(f"{constants.CHESS_PIECE_RES_PATH}{img_name}")
+    img = pygame.transform.scale(img, (size, size))
+    surface.blit(img, (x, y))
+    pygame.display.flip()
+
+
+def draw_chess_pieces(surface, board):
+    sur_width = surface.get_width()
+    sur_height = surface.get_height()
+
+    min_size = min(sur_height, sur_width)
+    box_size = min_size / 12
+    width_offset = sur_width / 2 - 4 * box_size
+    height_offset = sur_height / 2 - 4 * box_size
+
+    for y in range(len(board)):
+        for x in range(len(board[y])):
+            if not isinstance(board[y][x], EmptyPiece):
+                if board[y][x].color == ChessValues.WHITE:
+                    color = 'White'
+                else:
+                    color = 'Black'
+                draw_image(surface, x=(width_offset + x * box_size), y=(height_offset + y * box_size), size=box_size,
+                           img_name=f'{board[y][x].piece}{color}.png')
 
 
 pygame.init()
@@ -251,10 +280,13 @@ chess_board = assign_chess_board_values()
 
 draw_chess_board(screen, chess_board)
 
+game = ChessGame()
+
+draw_chess_pieces(screen, game.board)
+
 running = True
 while running:
 
-    draw_chess_board(screen, chess_board)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
