@@ -320,6 +320,8 @@ def click_on_chess_board(surface, x, y):
     return None
 
 
+chess_piece_images = []
+
 pygame.init()
 
 screen = pygame.display.set_mode([1920, 1080], pygame.RESIZABLE)
