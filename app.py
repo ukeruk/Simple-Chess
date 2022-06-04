@@ -223,6 +223,7 @@ class ChessGame:
                     case 'P':
                         self.board[i].append(Pawn(color, j, i))
 
+    # manages piece movement
     def move(self, point):
         if point is not None:
             x = point[0]
@@ -260,16 +261,13 @@ class ChessGame:
 #   ------------------------------------------------------------------
 
 
+# used to draw the individual checkered boxes
 def draw_box(surface, x, y, width, height, color):
     box = pygame.Rect((x, y, width, height))
-
     pygame.draw.rect(surface, color, box)
 
 
-def draw_circle(surface, x, y, radius, color):
-    pygame.draw.circle(surface, color, (x, y), radius)
-
-
+# draws the entire checkered board
 def draw_chess_board(surface, board):
     sur_width = surface.get_width()
     sur_height = surface.get_height()
@@ -312,12 +310,16 @@ def draw_image(surface, x, y, img):
     surface.blit(img, (x, y))
 
 
+# returns a loaded image from directory
 def load_image(size, img_name):
     img = pygame.image.load(f"{constants.CHESS_PIECE_RES_PATH}{img_name}.png")
+
+    # transforms the image size to fit the board checkers
     img = pygame.transform.scale(img, (size, size))
     return img
 
 
+# loads all images to memory for future use
 def load_images(surface, images):
     sur_width = surface.get_width()
     sur_height = surface.get_height()
@@ -330,6 +332,7 @@ def load_images(surface, images):
             images[f'{piece}{color}'] = load_image(size=(0.9 * box_size), img_name=f'{piece}{color}')
 
 
+# draws the chess piece images to the board in accordance to game state
 def draw_chess_pieces(surface, board, images):
     sur_width = surface.get_width()
     sur_height = surface.get_height()
@@ -351,6 +354,9 @@ def draw_chess_pieces(surface, board, images):
     pygame.display.flip()
 
 
+# checks if the area clicked on is on the board:
+#   if so it returns the corresponding x and y in the game array
+#   otherwise it returns none
 def click_on_chess_board(surface, x, y):
     sur_width = surface.get_width()
     sur_height = surface.get_height()
