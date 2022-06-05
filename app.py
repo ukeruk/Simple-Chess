@@ -1,6 +1,7 @@
 # A Pygame Battleship game
 
 # Imports
+import copy
 import time
 
 import pygame
@@ -47,14 +48,24 @@ class ChessPiece:
         self.y = y
 
 
+
+
 class EmptyPiece:
     def __init__(self):
         self.color = ChessValues.EMPTY
+
+    def __str__(self):
+        return 'NA'
 
 
 class Pawn(ChessPiece):
     def __init__(self, color, x, y):
         ChessPiece.__init__(self, color, x, y)
+
+    def __str__(self):
+        if self.color == ChessValues.WHITE:
+            return 'Pw'
+        return 'Pb'
 
     def available_moves(self, board):
         moves = []
@@ -64,7 +75,8 @@ class Pawn(ChessPiece):
             moves.append((0, move_up))
 
         if (self.y == 1 and move_up == 1) or (self.y == 6 and move_up == -1):
-            if isinstance(board[self.y + 2 * move_up][self.x], EmptyPiece) and isinstance(board[self.y + move_up][self.x], EmptyPiece):
+            if isinstance(board[self.y + 2 * move_up][self.x], EmptyPiece) and isinstance(
+                    board[self.y + move_up][self.x], EmptyPiece):
                 moves.append((0, 2 * move_up))
 
         if self.x > 0:
@@ -82,6 +94,11 @@ class King(ChessPiece):
         ChessPiece.__init__(self, color, x, y)
         self.moved = False
 
+    def __str__(self):
+        if self.color == ChessValues.WHITE:
+            return 'Kw'
+        return 'Kb'
+
     def available_moves(self, board):
         moves = []
 
@@ -93,15 +110,60 @@ class King(ChessPiece):
                             moves.append((i, j))
 
         if not self.moved:
+
             if isinstance(board[self.y][0], Rook) and board[self.y][0].color == self.color \
                     and board[self.y][0].moved is False:
-                if board[self.y][1] == 0 and board[self.y][2] == 0 and board[self.y][3] == 0:
+                print('here')
+                if isinstance(board[self.y][1], EmptyPiece) and isinstance(board[self.y][2], EmptyPiece) \
+                        and isinstance(board[self.y][3], EmptyPiece):
                     moves.append((-2, 0))
 
             if isinstance(board[self.y][7], Rook) and board[self.y][7].color == self.color \
                     and board[self.y][7].moved is False:
-                if board[self.y][5] == 0 and board[self.y][6] == 0:
+                print('here')
+                if isinstance(board[self.y][5], EmptyPiece) and isinstance(board[self.y][6], EmptyPiece):
                     moves.append((2, 0))
+        return moves
+
+    def knight_check(self, board):
+        moves = []
+
+        for j in ([2, 1], [-2, 1], [-2, -1], [2, -1], [1, 2], [-1, 2], [-1, -2], [1, -2]):
+            if 7 >= self.y + j[0] >= 0 and 7 >= self.x + j[1] >= 0:
+                if board[self.y + j[0]][self.x + j[1]].color is not self.color:
+                    moves.append((j[1], j[0]))
+        return moves
+
+    def rook_check(self, board):
+        moves = []
+
+        for j in ([0, 1], [1, 0], [-1, 0], [0, -1]):
+            move = True
+            for i in range(1, 8):
+                if move:
+                    if 7 >= self.y + i * j[0] >= 0 and 7 >= self.x + i * j[1] >= 0:
+                        if board[self.y + i * j[0]][self.x + i * j[1]].color is not self.color:
+                            moves.append((i * j[1], i * j[0]))
+                        if board[self.y + i * j[0]][self.x + i * j[1]].color != ChessValues.EMPTY:
+                            move = False
+                    else:
+                        move = False
+        return moves
+
+    def bishop_check(self, board):
+        moves = []
+
+        for j in ([1, 1], [-1, 1], [-1, -1], [1, -1]):
+            move = True
+            for i in range(1, 8):
+                if move:
+                    if 7 >= self.y + i * j[0] >= 0 and 7 >= self.x + i * j[1] >= 0:
+                        if board[self.y + i * j[0]][self.x + i * j[1]].color is not self.color:
+                            moves.append((i * j[1], i * j[0]))
+                        if board[self.y + i * j[0]][self.x + i * j[1]].color != ChessValues.EMPTY:
+                            move = False
+                    else:
+                        move = False
         return moves
 
 
@@ -109,6 +171,11 @@ class Rook(ChessPiece):
     def __init__(self, color, x, y):
         ChessPiece.__init__(self, color, x, y)
         self.moved = False
+
+    def __str__(self):
+        if self.color == ChessValues.WHITE:
+            return 'Rw'
+        return 'Rb'
 
     def available_moves(self, board):
         moves = []
@@ -131,6 +198,11 @@ class Bishop(ChessPiece):
     def __init__(self, color, x, y):
         ChessPiece.__init__(self, color, x, y)
 
+    def __str__(self):
+        if self.color == ChessValues.WHITE:
+            return 'Bw'
+        return 'Bb'
+
     def available_moves(self, board):
         moves = []
 
@@ -152,6 +224,11 @@ class Knight(ChessPiece):
     def __init__(self, color, x, y):
         ChessPiece.__init__(self, color, x, y)
 
+    def __str__(self):
+        if self.color == ChessValues.WHITE:
+            return 'Nw'
+        return 'Nb'
+
     def available_moves(self, board):
         moves = []
 
@@ -166,6 +243,11 @@ class Queen(ChessPiece):
     def __init__(self, color, x, y):
         ChessPiece.__init__(self, color, x, y)
 
+    def __str__(self):
+        if self.color == ChessValues.WHITE:
+            return 'Qw'
+        return 'Qb'
+
     def available_moves(self, board):
         moves = []
 
@@ -176,7 +258,7 @@ class Queen(ChessPiece):
                     if 7 >= self.y + i * j[0] >= 0 and 7 >= self.x + i * j[1] >= 0:
                         if board[self.y + i * j[0]][self.x + i * j[1]].color is not self.color:
                             moves.append((i * j[1], i * j[0]))
-                        if board[self.y + i * j[0]][self.x + i * j[1]].color.value != ChessValues.EMPTY:
+                        if board[self.y + i * j[0]][self.x + i * j[1]].color != ChessValues.EMPTY:
                             move = False
                     else:
                         move = False
@@ -195,6 +277,7 @@ class ChessGame:
         self.create_board()
         self.turn = ChessValues.WHITE
         self.moving = None
+        self.in_check = None
 
     def create_board(self):
         brd = constants.CHESS_BOARD
@@ -231,30 +314,100 @@ class ChessGame:
             if self.moving is None:
                 if self.board[y][x].color == self.turn:
                     moves = self.board[y][x].available_moves(self.board)
+                    print(len(moves))
                     if len(moves) > 0:
-                        self.checkered_board[y][x] = ChessValues.MOVING
+                        can_move = False
                         self.moving = (x, y)
                         for move in moves:
-                            if self.board[y + move[1]][x + move[0]].color.value == -1 * self.turn.value:
-                                self.checkered_board[y + move[1]][x + move[0]] = ChessValues.CAPTURE
-                            else:
-                                if self.checkered_board[y + move[1]][x + move[0]] == ChessValues.WHITE:
-                                    self.checkered_board[y + move[1]][x + move[0]] = ChessValues.MOVE_WHITE
+                            copy_board = copy.deepcopy(self.board)
+                            self.move_piece(copy_board, x, y, x + move[0], y + move[1])
+                            if self.check_if_in_check(copy_board, self.turn) is None:
+                                if isinstance(self.board[y][x], King) and abs(move[0]) == 2:
+                                    copy_board = copy.deepcopy(self.board)
+                                    self.move_piece(copy_board, x, y, x + move[0], y + move[1])
+                                    if move[0] == 2:
+                                        self.move_piece(copy_board, 7, y, 5, y)
+
+                                        if self.check_if_in_check(copy_board, self.turn) is not None:
+                                            continue
+                                    else:
+                                        self.move_piece(copy_board, 0, y, 3, y)
+
+                                        if self.check_if_in_check(copy_board, self.turn) is not None:
+                                            continue
+                                can_move = True
+                                if self.board[y + move[1]][x + move[0]].color.value == -1 * self.turn.value:
+                                    self.checkered_board[y + move[1]][x + move[0]] = ChessValues.CAPTURE
                                 else:
-                                    self.checkered_board[y + move[1]][x + move[0]] = ChessValues.MOVE_BLACK
+                                    if self.checkered_board[y + move[1]][x + move[0]] == ChessValues.WHITE:
+                                        self.checkered_board[y + move[1]][x + move[0]] = ChessValues.MOVE_WHITE
+                                    else:
+                                        self.checkered_board[y + move[1]][x + move[0]] = ChessValues.MOVE_BLACK
+                        if can_move:
+                            self.checkered_board[y][x] = ChessValues.MOVING
+
             else:
                 if self.board[y][x].color == self.turn:
                     self.checkered_board = assign_chess_board_values()
+                    if self.in_check is not None:
+                        self.checkered_board[self.in_check[1]][self.in_check[0]] = ChessValues.CHECK
                     self.moving = None
                     self.move(point)
                 elif ChessValues.MOVE_WHITE.value <= self.checkered_board[y][x].value <= ChessValues.CAPTURE.value:
-                    self.board[y][x] = self.board[self.moving[1]][self.moving[0]]
-                    self.board[y][x].move(x, y)
-                    self.board[self.moving[1]][self.moving[0]] = EmptyPiece()
+
+                    self.move_piece(self.board, self.moving[0], self.moving[1], x, y)
+                    if isinstance(self.board[y][x], King) and abs(self.moving[0] - x) == 2:
+                        if x - self.moving[0] == 2:
+                            self.move_piece(self.board, 7, y, 5, y)
+
+                        else:
+                            self.move_piece(self.board, 0, y, 3, y)
+
                     self.moving = None
                     self.checkered_board = assign_chess_board_values()
                     self.turn = ChessValues(self.turn.value * -1)
+                    pos = self.check_if_in_check(copy.deepcopy(self.board), self.turn)
+                    if pos is not None:
+                        self.checkered_board[pos[1]][pos[0]] = ChessValues.CHECK
+                        self.in_check = pos
 
+    # moves a piece on board from given x,y to requested x,y
+    def move_piece(self, board, cur_x, cur_y, move_x, move_y):
+        board[move_y][move_x] = board[cur_y][cur_x]
+        board[move_y][move_x].move(move_x, move_y)
+        board[cur_y][cur_x] = EmptyPiece()
+
+    # checks if given board is in check. lol.
+    def check_if_in_check(self, board, color):
+        cur_x = cur_y = None
+        for j in range(8):
+            for i in range(8):
+                if isinstance(board[j][i], King) and board[j][i].color == color:
+                    cur_x = i
+                    cur_y = j
+        for move in board[cur_y][cur_x].knight_check(board):
+            place_at_move = board[cur_y + move[1]][cur_x + move[0]]
+            if isinstance(place_at_move, Knight) and \
+                    board[cur_y + move[1]][cur_x + move[0]].color.value == -1 * color.value:
+                return cur_x, cur_y
+        for move in board[cur_y][cur_x].rook_check(board):
+            place_at_move = board[cur_y + move[1]][cur_x + move[0]]
+            if (isinstance(place_at_move, Rook) or isinstance(place_at_move, Queen)) and \
+                    board[cur_y + move[1]][cur_x + move[0]].color.value == -1 * color.value:
+                return cur_x, cur_y
+        for move in board[cur_y][cur_x].bishop_check(board):
+            place_at_move = board[cur_y + move[1]][cur_x + move[0]]
+            if (isinstance(place_at_move, Bishop) or isinstance(place_at_move, Queen)) and \
+                    board[cur_y + move[1]][cur_x + move[0]].color.value == -1 * color.value:
+                return cur_x, cur_y
+        return None
+
+    # prints the board in text form
+    def print_board(self, board):
+        for i in range(8):
+            for j in range(8):
+                print(board[i][j], end=" ")
+            print('')
 
 #   ------------------------------------------------------------------
 #   --------------------------GUI Functions---------------------------
@@ -301,6 +454,10 @@ def draw_chess_board(surface, board):
                              width=box_size,
                              height=box_size, color=constants.COLOR_MOVE)
                 case ChessValues.CAPTURE:
+                    draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
+                             width=box_size,
+                             height=box_size, color=constants.COLOR_CAPTURE)
+                case ChessValues.CHECK:
                     draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
                              width=box_size,
                              height=box_size, color=constants.COLOR_CAPTURE)
