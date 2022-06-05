@@ -113,14 +113,12 @@ class King(ChessPiece):
 
             if isinstance(board[self.y][0], Rook) and board[self.y][0].color == self.color \
                     and board[self.y][0].moved is False:
-                print('here')
                 if isinstance(board[self.y][1], EmptyPiece) and isinstance(board[self.y][2], EmptyPiece) \
                         and isinstance(board[self.y][3], EmptyPiece):
                     moves.append((-2, 0))
 
             if isinstance(board[self.y][7], Rook) and board[self.y][7].color == self.color \
                     and board[self.y][7].moved is False:
-                print('here')
                 if isinstance(board[self.y][5], EmptyPiece) and isinstance(board[self.y][6], EmptyPiece):
                     moves.append((2, 0))
         return moves
@@ -314,7 +312,6 @@ class ChessGame:
             if self.moving is None:
                 if self.board[y][x].color == self.turn:
                     moves = self.board[y][x].available_moves(self.board)
-                    print(len(moves))
                     if len(moves) > 0:
                         can_move = False
                         self.moving = (x, y)
@@ -359,10 +356,8 @@ class ChessGame:
                     if isinstance(self.board[y][x], King) and abs(self.moving[0] - x) == 2:
                         if x - self.moving[0] == 2:
                             self.move_piece(self.board, 7, y, 5, y)
-
                         else:
                             self.move_piece(self.board, 0, y, 3, y)
-
                     self.moving = None
                     self.checkered_board = assign_chess_board_values()
                     self.turn = ChessValues(self.turn.value * -1)
