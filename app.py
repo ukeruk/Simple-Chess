@@ -470,7 +470,7 @@ def draw_chess_board(surface, board):
     sur_height = surface.get_height()
 
     min_size = min(sur_height, sur_width)
-    box_size = min_size / 12
+    box_size = min_size / constants.SCREEN_BOX_RATIO
     width_offset = sur_width / 2 - 4 * box_size
     height_offset = sur_height / 2 - 4 * box_size
 
@@ -625,7 +625,7 @@ def announce_winner(surface, color):
 
     pygame.font.init()
     font_path = f'{constants.FONT_RES_PATH}pcsenior.ttf'
-    font_size = 50
+    font_size = int((sur_height/21))
     font = pygame.font.Font(font_path, font_size)
     if color == ChessValues.WHITE:
         winner = "White"
@@ -692,6 +692,7 @@ game = ChessGame(assign_chess_board_values())
 draw_chess_board(screen, game.checkered_board)
 draw_chess_pieces(screen, game.board, chess_piece_images)
 pygame.display.flip()
+
 
 running = True
 while running:
