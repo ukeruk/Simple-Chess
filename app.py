@@ -19,7 +19,8 @@ class ChessValues(Enum):
     MOVE_WHITE = 5
     MOVE_BLACK = 6
     CAPTURE = 7
-    CHECK = 8
+    NO_MOVES = 8
+    CHECK = 9
 
 
 def assign_chess_board_values():
@@ -310,6 +311,7 @@ class ChessGame:
             x = point[0]
             y = point[1]
             if self.moving is None:
+                self.checkered_board = assign_chess_board_values()
                 if self.board[y][x].color == self.turn:
                     moves = self.board[y][x].available_moves(self.board)
                     if len(moves) > 0:
@@ -323,15 +325,6 @@ class ChessGame:
                                     copy_board = copy.deepcopy(self.board)
                                     if self.castling_in_check(copy_board, x, y, move):
                                         continue
-                                    # self.move_piece(copy_board, x, y, x + move[0], y + move[1])
-                                    # if move[0] == 2:
-                                    #     self.move_piece(copy_board, 7, y, 5, y)
-                                    #     if self.check_if_in_check(copy_board, self.turn) is not None:
-                                    #         continue
-                                    # else:
-                                    #     self.move_piece(copy_board, 0, y, 3, y)
-                                    #     if self.check_if_in_check(copy_board, self.turn) is not None:
-                                    #         continue
                                 can_move = True
                                 if self.board[y + move[1]][x + move[0]].color.value == -1 * self.turn.value:
                                     self.checkered_board[y + move[1]][x + move[0]] = ChessValues.CAPTURE
@@ -342,6 +335,10 @@ class ChessGame:
                                         self.checkered_board[y + move[1]][x + move[0]] = ChessValues.MOVE_BLACK
                         if can_move:
                             self.checkered_board[y][x] = ChessValues.MOVING
+                        else:
+                            self.checkered_board[y][x] = ChessValues.NO_MOVES
+                    else:
+                        self.checkered_board[y][x] = ChessValues.NO_MOVES
 
             else:
                 if self.board[y][x].color == self.turn:
@@ -508,6 +505,10 @@ def draw_chess_board(surface, board):
                     draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
                              width=box_size,
                              height=box_size, color=constants.COLOR_CAPTURE)
+                case ChessValues.NO_MOVES:
+                    draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
+                             width=box_size,
+                             height=box_size, color=constants.COLOR_NO_MOVES)
 
 
 def draw_image(surface, x, y, img):
@@ -594,19 +595,21 @@ def click_on_promotion(surface, promoted_loc, x, y, color):
         promotion_offset = 0
         above_board = -1
     else:
-        y = 7
-        promotion_offset = 1
+        above_board = 1
+        promotion_offset = 7
 
     pieces = ['Queen', 'Rook', 'Bishop', 'Knight']
 
     c_x = 0
     print('x: ', x, ' | left-border: ', (width_offset + promoted_loc * box_size - 1.5 * box_size))
+    print('y: ', y, ' | up: ', (height_offset + box_size * promotion_offset + above_board * box_size), ' | down: ', (height_offset + box_size * promotion_offset + above_board * box_size + box_size))
     if (width_offset + promoted_loc * box_size - 1.5 * box_size) < x < \
-            (width_offset + (promoted_loc + 3) * box_size - 1.5 * box_size) and \
+            (width_offset + (promoted_loc + 4) * box_size - 1.5 * box_size) and \
             (height_offset + box_size * promotion_offset + above_board * box_size) < y < \
             (height_offset + box_size * promotion_offset + above_board * box_size + box_size):
 
-        while x - width_offset + c_x * box_size - 1.5 * box_size > box_size:
+        while x - (width_offset + promoted_loc * box_size + c_x * box_size - 1.5 * box_size) > box_size:
+            print((width_offset + promoted_loc * box_size + c_x * box_size - 1.5 * box_size))
             c_x += 1
         return pieces[c_x]
     return None

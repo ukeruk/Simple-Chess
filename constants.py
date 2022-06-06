@@ -3,6 +3,7 @@ SCREEN_BOX_RATIO = 12
 COLOR_WHITE = (238, 238, 210)
 COLOR_GREEN = (118, 150, 86)
 COLOR_MOVE = (200, 100, 0)
+COLOR_NO_MOVES = (235, 222, 61)
 COLOR_WHITE_MOVE = (239, 229, 105)
 COLOR_GREEN_MOVE = (179, 185, 43)
 COLOR_CAPTURE = (170, 50, 35)
@@ -18,12 +19,12 @@ IMAGE_BOX_OFFSET = 0.1
 
 CHESS_BOARD = [
     ['Rb', 'Nb', 'Bb', 'Qb', 'Kb', 'Bb', 'Nb', 'Rb'],
-    ['Pb', 'Pb', 'Pb', 'Pb', 'Pb', 'Pb', 'Pb', 'Pb'],
+    ['Pb', 'Pw', 'Pb', 'Pb', 'Pb', 'Pb', 'Pb', 'Pb'],
     ['NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA'],
     ['NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA'],
     ['NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA'],
     ['NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA'],
-    ['Pw', 'Pw', 'Pw', 'Pw', 'Pw', 'Pw', 'Pw', 'Pw'],
+    ['Pw', 'Pw', 'Pw', 'Pw', 'Pw', 'Pw', 'Pb', 'Pw'],
     ['Rw', 'Nw', 'Bw', 'Qw', 'Kw', 'Bw', 'Nw', 'Rw'],
 ]
 
