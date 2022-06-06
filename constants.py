@@ -19,12 +19,12 @@ IMAGE_BOX_OFFSET = 0.1
 
 CHESS_BOARD = [
     ['Rb', 'Nb', 'Bb', 'Qb', 'Kb', 'Bb', 'Nb', 'Rb'],
-    ['Pb', 'Pw', 'Pb', 'Pb', 'Pb', 'Pb', 'Pb', 'Pb'],
+    ['Pb', 'Pb', 'Pb', 'Pb', 'Pb', 'Pb', 'Pb', 'Pb'],
     ['NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA'],
     ['NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA'],
     ['NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA'],
     ['NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA'],
-    ['Pw', 'Pw', 'Pw', 'Pw', 'Pw', 'Pw', 'Pb', 'Pw'],
+    ['Pw', 'Pw', 'Pw', 'Pw', 'Pw', 'Pw', 'Pw', 'Pw'],
     ['Rw', 'Nw', 'Bw', 'Qw', 'Kw', 'Bw', 'Nw', 'Rw'],
 ]
 
