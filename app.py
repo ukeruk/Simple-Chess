@@ -275,6 +275,7 @@ class ChessGame:
         self.moving = None
         self.in_check = None
         self.mate = False
+        self.promotion = None
 
     def create_board(self):
         brd = constants.CHESS_BOARD
@@ -350,13 +351,18 @@ class ChessGame:
                     self.moving = None
                     self.move(point)
                 elif ChessValues.MOVE_WHITE.value <= self.checkered_board[y][x].value <= ChessValues.CAPTURE.value:
-
+                    if self.in_check is not None:
+                        self.in_check = None
+                        self.checkered_board = assign_chess_board_values()
                     self.move_piece(self.board, self.moving[0], self.moving[1], x, y)
                     if isinstance(self.board[y][x], King) and abs(self.moving[0] - x) == 2:
                         if x - self.moving[0] == 2:
                             self.move_piece(self.board, 7, y, 5, y)
                         else:
                             self.move_piece(self.board, 0, y, 3, y)
+                    elif ((self.turn == ChessValues.WHITE and y == 0) or (self.turn == ChessValues.BLACK and y == 7)) \
+                            and isinstance(self.board[y][x], Pawn):
+                        self.promotion = (x, y)
                     self.moving = None
                     self.checkered_board = assign_chess_board_values()
                     self.turn = ChessValues(self.turn.value * -1)
@@ -384,6 +390,23 @@ class ChessGame:
             if self.check_if_in_check(board, self.turn) is not None:
                 return True
         return False
+
+    def promote(self, promotes_to):
+        if promotes_to is not None:
+            piece = 'NA'
+            color = self.board[self.promotion[1]][self.promotion[0]].color
+            match promotes_to:
+                case 'Queen':
+                    piece = Queen(color, 0, 0)
+                case 'Rook':
+                    piece = Rook(color, 0, 0)
+                case 'Bishop':
+                    piece = Bishop(color, 0, 0)
+                case 'Knight':
+                    piece = Knight(color, 0, 0)
+            self.board[self.promotion[1]][self.promotion[0]] = piece
+            piece.move(self.promotion[0], self.promotion[1])
+            self.promotion = None
 
     # checks if given board is in check. lol.
     def check_if_in_check(self, board, color):
@@ -558,6 +581,37 @@ def click_on_chess_board(surface, x, y):
     return None
 
 
+def click_on_promotion(surface, promoted_loc, x, y, color):
+    sur_width = surface.get_width()
+    sur_height = surface.get_height()
+
+    min_size = min(sur_height, sur_width)
+    box_size = min_size / constants.SCREEN_BOX_RATIO
+    width_offset = sur_width / 2 - 4 * box_size
+    height_offset = sur_height / 2 - 4 * box_size
+
+    if color == ChessValues.WHITE:
+        promotion_offset = 0
+        above_board = -1
+    else:
+        y = 7
+        promotion_offset = 1
+
+    pieces = ['Queen', 'Rook', 'Bishop', 'Knight']
+
+    c_x = 0
+    print('x: ', x, ' | left-border: ', (width_offset + promoted_loc * box_size - 1.5 * box_size))
+    if (width_offset + promoted_loc * box_size - 1.5 * box_size) < x < \
+            (width_offset + (promoted_loc + 3) * box_size - 1.5 * box_size) and \
+            (height_offset + box_size * promotion_offset + above_board * box_size) < y < \
+            (height_offset + box_size * promotion_offset + above_board * box_size + box_size):
+
+        while x - width_offset + c_x * box_size - 1.5 * box_size > box_size:
+            c_x += 1
+        return pieces[c_x]
+    return None
+
+
 # Displays the winning color.
 def announce_winner(surface, color):
     sur_width = surface.get_width()
@@ -567,7 +621,7 @@ def announce_winner(surface, color):
     box_size = min_size / constants.SCREEN_BOX_RATIO
 
     pygame.font.init()
-    font_path = "resources/fonts/pcsenior.ttf"
+    font_path = f'{constants.FONT_RES_PATH}pcsenior.ttf'
     font_size = 50
     font = pygame.font.Font(font_path, font_size)
     if color == ChessValues.WHITE:
@@ -580,11 +634,40 @@ def announce_winner(surface, color):
     text = font.render(f"{winner} Wins!", 1, txt_color)
     bg_text = font.render(f"{winner} Wins!", 1, bg_color)
     text_center = text.get_rect(center=(sur_width / 2, box_size))
-    bg_center = text.get_rect(center=((sur_width-6) / 2, box_size+2))
+    bg_center = text.get_rect(center=((sur_width - 6) / 2, box_size + 2))
     surface.blit(bg_text, bg_center)
     surface.blit(text, text_center)
 
-    pygame.display.flip()
+
+def draw_promotion(surface, x, color, pieces):
+    sur_width = surface.get_width()
+    sur_height = surface.get_height()
+
+    min_size = min(sur_height, sur_width)
+    box_size = min_size / constants.SCREEN_BOX_RATIO
+    width_offset = sur_width / 2 - 4 * box_size
+    height_offset = sur_height / 2 - 4 * box_size
+
+    if color == ChessValues.WHITE:
+        piece_color = 'White'
+        y = 0
+        above_board = -1
+    else:
+        piece_color = 'Black'
+        y = 7
+        above_board = 1
+
+    piece_order = ['Queen', 'Rook', 'Bishop', 'Knight']
+
+    for i in range(4):
+        draw_box(surface=surface, x=(width_offset + (x + i) * box_size - 1.5 * box_size),
+                 y=(height_offset + box_size * y + above_board * box_size),
+                 width=box_size, height=box_size, color=constants.COLOR_PROMOTION)
+
+        draw_image(surface,
+                   x=(width_offset + (x + i) * box_size - 1.5 * box_size - box_size * constants.IMAGE_BOX_OFFSET / 2),
+                   y=(height_offset + box_size * y + above_board * box_size - box_size * constants.IMAGE_BOX_OFFSET / 2)
+                   , img=pieces[f'{piece_order[i]}{piece_color}'])
 
 
 #   ------------------------------------------------------------------
@@ -620,18 +703,32 @@ while running:
                 load_images(screen, chess_piece_images)
                 draw_chess_board(screen, game.checkered_board)
                 draw_chess_pieces(screen, game.board, chess_piece_images)
-                if game.mate:
+                if game.promotion is not None:
+                    draw_promotion(screen, game.promotion[0], ChessValues(game.turn.value * -1), chess_piece_images)
+                elif game.mate:
                     announce_winner(screen, ChessValues(game.turn.value * -1))
                 pygame.display.flip()
 
             case pygame.MOUSEBUTTONDOWN:
                 if game.mate is False:
-                    game.move(click_on_chess_board(screen, event.pos[0], event.pos[1]))
-                    draw_chess_board(screen, game.checkered_board)
-                    draw_chess_pieces(screen, game.board, chess_piece_images)
+                    if game.promotion is None:
+                        game.move(click_on_chess_board(screen, event.pos[0], event.pos[1]))
+                        draw_chess_board(screen, game.checkered_board)
+                        draw_chess_pieces(screen, game.board, chess_piece_images)
+                        if game.promotion is not None:
+                            draw_promotion(screen, game.promotion[0],
+                                           ChessValues(game.turn.value * -1), chess_piece_images)
+
+                        elif game.mate:
+                            announce_winner(screen, ChessValues(game.turn.value * -1))
+                    else:
+                        game.promote(click_on_promotion(screen, game.promotion[0],
+                                                        event.pos[0], event.pos[1], ChessValues(game.turn.value * -1)))
+                        if game.promotion is None:
+                            screen.fill(constants.BG_COLOR)
+                            draw_chess_board(screen, game.checkered_board)
+                            draw_chess_pieces(screen, game.board, chess_piece_images)
                     pygame.display.flip()
-                    if game.mate:
-                        announce_winner(screen, ChessValues(game.turn.value * -1))
 
     time.sleep(0.1)
 

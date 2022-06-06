@@ -6,6 +6,7 @@ COLOR_MOVE = (200, 100, 0)
 COLOR_WHITE_MOVE = (239, 229, 105)
 COLOR_GREEN_MOVE = (179, 185, 43)
 COLOR_CAPTURE = (170, 50, 35)
+COLOR_PROMOTION = (222, 222, 169)
 
 BG_COLOR = (48, 46, 43)
 
@@ -26,5 +27,5 @@ CHESS_BOARD = [
     ['Rw', 'Nw', 'Bw', 'Qw', 'Kw', 'Bw', 'Nw', 'Rw'],
 ]
 
-
+FONT_RES_PATH = "resources/fonts/"
 CHESS_PIECE_RES_PATH = "resources/chess/pieces/"
