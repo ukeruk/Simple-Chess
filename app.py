@@ -48,8 +48,6 @@ class ChessPiece:
         self.y = y
 
 
-
-
 class EmptyPiece:
     def __init__(self):
         self.color = ChessValues.EMPTY
@@ -276,6 +274,7 @@ class ChessGame:
         self.turn = ChessValues.WHITE
         self.moving = None
         self.in_check = None
+        self.mate = False
 
     def create_board(self):
         brd = constants.CHESS_BOARD
@@ -321,17 +320,17 @@ class ChessGame:
                             if self.check_if_in_check(copy_board, self.turn) is None:
                                 if isinstance(self.board[y][x], King) and abs(move[0]) == 2:
                                     copy_board = copy.deepcopy(self.board)
-                                    self.move_piece(copy_board, x, y, x + move[0], y + move[1])
-                                    if move[0] == 2:
-                                        self.move_piece(copy_board, 7, y, 5, y)
-
-                                        if self.check_if_in_check(copy_board, self.turn) is not None:
-                                            continue
-                                    else:
-                                        self.move_piece(copy_board, 0, y, 3, y)
-
-                                        if self.check_if_in_check(copy_board, self.turn) is not None:
-                                            continue
+                                    if self.castling_in_check(copy_board, x, y, move):
+                                        continue
+                                    # self.move_piece(copy_board, x, y, x + move[0], y + move[1])
+                                    # if move[0] == 2:
+                                    #     self.move_piece(copy_board, 7, y, 5, y)
+                                    #     if self.check_if_in_check(copy_board, self.turn) is not None:
+                                    #         continue
+                                    # else:
+                                    #     self.move_piece(copy_board, 0, y, 3, y)
+                                    #     if self.check_if_in_check(copy_board, self.turn) is not None:
+                                    #         continue
                                 can_move = True
                                 if self.board[y + move[1]][x + move[0]].color.value == -1 * self.turn.value:
                                     self.checkered_board[y + move[1]][x + move[0]] = ChessValues.CAPTURE
@@ -365,12 +364,26 @@ class ChessGame:
                     if pos is not None:
                         self.checkered_board[pos[1]][pos[0]] = ChessValues.CHECK
                         self.in_check = pos
+                        if self.check_if_mate(self.board, self.turn):
+                            self.mate = True
 
     # moves a piece on board from given x,y to requested x,y
     def move_piece(self, board, cur_x, cur_y, move_x, move_y):
         board[move_y][move_x] = board[cur_y][cur_x]
         board[move_y][move_x].move(move_x, move_y)
         board[cur_y][cur_x] = EmptyPiece()
+
+    def castling_in_check(self, board, x, y, move):
+        self.move_piece(board, x, y, x + move[0], y + move[1])
+        if move[0] == 2:
+            self.move_piece(board, 7, y, 5, y)
+            if self.check_if_in_check(board, self.turn) is not None:
+                return True
+        else:
+            self.move_piece(board, 0, y, 3, y)
+            if self.check_if_in_check(board, self.turn) is not None:
+                return True
+        return False
 
     # checks if given board is in check. lol.
     def check_if_in_check(self, board, color):
@@ -397,12 +410,28 @@ class ChessGame:
                 return cur_x, cur_y
         return None
 
+    def check_if_mate(self, board, color):
+        for j in range(8):
+            for i in range(8):
+                if board[j][i].color == color:
+                    for move in board[j][i].available_moves(self.board):
+                        copy_board = copy.deepcopy(board)
+                        if isinstance(self.board[j][i], King) and abs(move[0]) == 2:
+                            if not self.castling_in_check(copy_board, j, i, move):
+                                return False
+                            continue
+                        self.move_piece(copy_board, i, j, i + move[0], j + move[1])
+                        if not self.check_if_in_check(copy_board, color):
+                            return False
+        return True
+
     # prints the board in text form
     def print_board(self, board):
         for i in range(8):
             for j in range(8):
                 print(board[i][j], end=" ")
             print('')
+
 
 #   ------------------------------------------------------------------
 #   --------------------------GUI Functions---------------------------
@@ -467,7 +496,7 @@ def load_image(size, img_name):
     img = pygame.image.load(f"{constants.CHESS_PIECE_RES_PATH}{img_name}.png")
 
     # transforms the image size to fit the board checkers
-    img = pygame.transform.scale(img, (size, size))
+    img = pygame.transform.smoothscale(img, (size, size))
     return img
 
 
@@ -477,11 +506,12 @@ def load_images(surface, images):
     sur_height = surface.get_height()
 
     min_size = min(sur_height, sur_width)
-    box_size = min_size / 12
+    box_size = min_size / constants.SCREEN_BOX_RATIO
 
     for color in ['Black', 'White']:
         for piece in ['Pawn', 'Rook', 'Knight', 'Bishop', 'King', 'Queen']:
-            images[f'{piece}{color}'] = load_image(size=(0.9 * box_size), img_name=f'{piece}{color}')
+            images[f'{piece}{color}'] = load_image(size=(box_size * (1 + constants.IMAGE_BOX_OFFSET)),
+                                                   img_name=f'{piece}{color}')
 
 
 # draws the chess piece images to the board in accordance to game state
@@ -490,7 +520,7 @@ def draw_chess_pieces(surface, board, images):
     sur_height = surface.get_height()
 
     min_size = min(sur_height, sur_width)
-    box_size = min_size / 12
+    box_size = min_size / constants.SCREEN_BOX_RATIO
     width_offset = sur_width / 2 - 4 * box_size
     height_offset = sur_height / 2 - 4 * box_size
     for y in range(len(board)):
@@ -500,8 +530,8 @@ def draw_chess_pieces(surface, board, images):
                     color = 'White'
                 else:
                     color = 'Black'
-                draw_image(surface, x=(width_offset + x * box_size + box_size * 0.05),
-                           y=(height_offset + y * box_size + box_size * 0.05),
+                draw_image(surface, x=(width_offset + x * box_size - box_size * constants.IMAGE_BOX_OFFSET / 2),
+                           y=(height_offset + y * box_size - box_size * constants.IMAGE_BOX_OFFSET / 2),
                            img=images[f'{board[y][x].piece}{color}'])
     pygame.display.flip()
 
@@ -514,7 +544,7 @@ def click_on_chess_board(surface, x, y):
     sur_height = surface.get_height()
 
     min_size = min(sur_height, sur_width)
-    box_size = min_size / 12
+    box_size = min_size / constants.SCREEN_BOX_RATIO
     width_offset = sur_width / 2 - 4 * box_size
     height_offset = sur_height / 2 - 4 * box_size
 
@@ -526,6 +556,35 @@ def click_on_chess_board(surface, x, y):
             c_y += 1
         return c_x, c_y
     return None
+
+
+# Displays the winning color.
+def announce_winner(surface, color):
+    sur_width = surface.get_width()
+    sur_height = surface.get_height()
+
+    min_size = min(sur_height, sur_width)
+    box_size = min_size / constants.SCREEN_BOX_RATIO
+
+    pygame.font.init()
+    font_path = "resources/fonts/pcsenior.ttf"
+    font_size = 50
+    font = pygame.font.Font(font_path, font_size)
+    if color == ChessValues.WHITE:
+        winner = "White"
+    else:
+        winner = "Black"
+
+    txt_color = (200, 200, 200)
+    bg_color = (20, 20, 20)
+    text = font.render(f"{winner} Wins!", 1, txt_color)
+    bg_text = font.render(f"{winner} Wins!", 1, bg_color)
+    text_center = text.get_rect(center=(sur_width / 2, box_size))
+    bg_center = text.get_rect(center=((sur_width-6) / 2, box_size+2))
+    surface.blit(bg_text, bg_center)
+    surface.blit(text, text_center)
+
+    pygame.display.flip()
 
 
 #   ------------------------------------------------------------------
@@ -561,13 +620,19 @@ while running:
                 load_images(screen, chess_piece_images)
                 draw_chess_board(screen, game.checkered_board)
                 draw_chess_pieces(screen, game.board, chess_piece_images)
+                if game.mate:
+                    announce_winner(screen, ChessValues(game.turn.value * -1))
                 pygame.display.flip()
 
             case pygame.MOUSEBUTTONDOWN:
-                game.move(click_on_chess_board(screen, event.pos[0], event.pos[1]))
-                draw_chess_board(screen, game.checkered_board)
-                draw_chess_pieces(screen, game.board, chess_piece_images)
-                pygame.display.flip()
+                if game.mate is False:
+                    game.move(click_on_chess_board(screen, event.pos[0], event.pos[1]))
+                    draw_chess_board(screen, game.checkered_board)
+                    draw_chess_pieces(screen, game.board, chess_piece_images)
+                    pygame.display.flip()
+                    if game.mate:
+                        announce_winner(screen, ChessValues(game.turn.value * -1))
+
     time.sleep(0.1)
 
 pygame.quit()
