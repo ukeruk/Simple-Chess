@@ -730,12 +730,21 @@ def redraw_pieces():
 def redraw_temp():
     screen.blit(surface_temp, (0, 0))
 
+
 # redraws the board around x/y - used for drawing drag and drop without artifacts
 def clear_temp(x, y):
     draw_box(screen, x - 250, y - 250,  500, 500, constants.BG_COLOR)
     screen.blit(surface_board, (x - 250, y - 250), pygame.Rect(x - 250, y - 250, 500, 500))
     screen.blit(surface_pieces, (x - 250, y - 250), pygame.Rect(x - 250, y - 250, 500, 500))
     surface_temp.fill((0, 0, 0, 0))
+
+
+def resize_surfaces():
+    global surface_board, surface_pieces, surface_temp
+    surface_board = pygame.Surface(screen.get_rect().size, pygame.SRCALPHA, 32)
+    surface_pieces = pygame.Surface(screen.get_rect().size, pygame.SRCALPHA, 32)
+    surface_temp = pygame.Surface(screen.get_rect().size, pygame.SRCALPHA, 32)
+    redraw()
 
 
 #   ------------------------------------------------------------------
@@ -773,32 +782,39 @@ running = True
 # TODO create an update function that uses surface functions according to flags.
 while running:
     for event in pygame.event.get():
+
         if pygame.mouse.get_pressed()[0] and moving is not None:
             mouse_pos = pygame.mouse.get_pos()
             drag_and_drop(surface_temp, mouse_pos[0], mouse_pos[1], moving, game.board, chess_piece_images)
             pygame.display.flip()
+
         match event.type:
             case pygame.QUIT:
                 running = False
 
             case pygame.VIDEORESIZE:
                 load_images(screen, chess_piece_images)
+                resize_surfaces()
                 redraw()
 
             case pygame.MOUSEBUTTONDOWN:
-                if game.mate is False:
-                    if game.promotion is None:
-                        move = click_on_chess_board(screen, event.pos[0], event.pos[1])
-                        if move is not None:
-                            game.move(move)
-                            if game.moving is not None:
-                                moving = move
-                                drag_and_drop(surface_temp, event.pos[0], event.pos[1], moving, game.board,
-                                              chess_piece_images)
-                    else:
-                        game.promote(click_on_promotion(screen, game.promotion[0],
-                                                        event.pos[0], event.pos[1], ChessValues(game.turn.value * -1)))
-                    redraw()
+
+                if game.mate is True:
+                    break
+                if game.promotion is None:
+
+                    move = click_on_chess_board(screen, event.pos[0], event.pos[1])
+                    if move is None:
+                        break
+                    game.move(move)
+                    if game.moving is not None:
+                        moving = move
+                        drag_and_drop(surface_temp, event.pos[0], event.pos[1], moving, game.board,
+                                      chess_piece_images)
+                else:
+                    game.promote(click_on_promotion(screen, game.promotion[0],
+                                                    event.pos[0], event.pos[1], ChessValues(game.turn.value * -1)))
+                redraw()
 
             case pygame.MOUSEBUTTONUP:
 
