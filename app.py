@@ -539,7 +539,7 @@ def load_images(surface, images):
 
 
 # draws the chess piece images to the board in accordance to game state
-def draw_chess_pieces(surface, board, images):
+def draw_chess_pieces(surface, board, images, dont_draw):
     sur_width = surface.get_width()
     sur_height = surface.get_height()
 
@@ -550,6 +550,8 @@ def draw_chess_pieces(surface, board, images):
     for y in range(len(board)):
         for x in range(len(board[y])):
             if not isinstance(board[y][x], EmptyPiece):
+                if dont_draw is not None and dont_draw[0] == x and dont_draw[1] == y:
+                    continue
                 if board[y][x].color == ChessValues.WHITE:
                     color = 'White'
                 else:
@@ -601,15 +603,12 @@ def click_on_promotion(surface, promoted_loc, x, y, color):
     pieces = ['Queen', 'Rook', 'Bishop', 'Knight']
 
     c_x = 0
-    print('x: ', x, ' | left-border: ', (width_offset + promoted_loc * box_size - 1.5 * box_size))
-    print('y: ', y, ' | up: ', (height_offset + box_size * promotion_offset + above_board * box_size), ' | down: ', (height_offset + box_size * promotion_offset + above_board * box_size + box_size))
     if (width_offset + promoted_loc * box_size - 1.5 * box_size) < x < \
             (width_offset + (promoted_loc + 4) * box_size - 1.5 * box_size) and \
             (height_offset + box_size * promotion_offset + above_board * box_size) < y < \
             (height_offset + box_size * promotion_offset + above_board * box_size + box_size):
 
         while x - (width_offset + promoted_loc * box_size + c_x * box_size - 1.5 * box_size) > box_size:
-            print((width_offset + promoted_loc * box_size + c_x * box_size - 1.5 * box_size))
             c_x += 1
         return pieces[c_x]
     return None
@@ -625,7 +624,7 @@ def announce_winner(surface, color):
 
     pygame.font.init()
     font_path = f'{constants.FONT_RES_PATH}pcsenior.ttf'
-    font_size = int((sur_height/21))
+    font_size = int((sur_height / 21))
     font = pygame.font.Font(font_path, font_size)
     if color == ChessValues.WHITE:
         winner = "White"
@@ -642,6 +641,7 @@ def announce_winner(surface, color):
     surface.blit(text, text_center)
 
 
+# Draws available pawn promotion options above/below the promoting pawn
 def draw_promotion(surface, x, color, pieces):
     sur_width = surface.get_width()
     sur_height = surface.get_height()
@@ -673,6 +673,71 @@ def draw_promotion(surface, x, color, pieces):
                    , img=pieces[f'{piece_order[i]}{piece_color}'])
 
 
+# allows to drag and drop chess pieces instead of clicking them to move
+def drag_and_drop(surface, x, y, holding, board, images):
+    clear_temp(x, y)
+    sur_width = surface.get_width()
+    sur_height = surface.get_height()
+
+    min_size = min(sur_height, sur_width)
+    box_size = min_size / constants.SCREEN_BOX_RATIO
+
+    if board[holding[1]][holding[0]].color == ChessValues.WHITE:
+        color = 'White'
+    else:
+        color = 'Black'
+
+    draw_image(surface, x=(x - box_size / 2 - box_size * constants.IMAGE_BOX_OFFSET / 2),
+               y=(y - box_size / 2 - box_size * constants.IMAGE_BOX_OFFSET / 2),
+               img=images[f'{board[holding[1]][holding[0]].piece}{color}'])
+    redraw_temp()
+
+
+
+#   ------------------------------------------------------------------
+#   --------------------Surface Operations for GUI--------------------
+#   ------------------------------------------------------------------
+
+
+# draws all surfaces
+def redraw():
+    screen.fill(constants.BG_COLOR)
+    if game.promotion is not None:
+        draw_promotion(screen, game.promotion[0], ChessValues(game.turn.value * -1), chess_piece_images)
+    elif game.mate:
+        announce_winner(screen, ChessValues(game.turn.value * -1))
+    redraw_board()
+    redraw_pieces()
+    redraw_temp()
+    pygame.display.flip()
+
+
+# draws the board layer - first layer
+def redraw_board():
+    surface_board.fill((0, 0, 0, 0))
+    draw_chess_board(surface_board, game.checkered_board)
+    screen.blit(surface_board, (0, 0))
+
+
+# draws the chess piece layer - second layer
+def redraw_pieces():
+    surface_pieces.fill((0, 0, 0, 0))
+    draw_chess_pieces(surface_pieces, game.board, chess_piece_images, moving)
+    screen.blit(surface_pieces, (0, 0))
+
+
+# draws the effect layer - third layer
+def redraw_temp():
+    screen.blit(surface_temp, (0, 0))
+
+# redraws the board around x/y - used for drawing drag and drop without artifacts
+def clear_temp(x, y):
+    draw_box(screen, x - 250, y - 250,  500, 500, constants.BG_COLOR)
+    screen.blit(surface_board, (x - 250, y - 250), pygame.Rect(x - 250, y - 250, 500, 500))
+    screen.blit(surface_pieces, (x - 250, y - 250), pygame.Rect(x - 250, y - 250, 500, 500))
+    surface_temp.fill((0, 0, 0, 0))
+
+
 #   ------------------------------------------------------------------
 #   -------------------Main variables and game loop-------------------
 #   ------------------------------------------------------------------
@@ -680,9 +745,16 @@ def draw_promotion(surface, x, color, pieces):
 
 pygame.init()
 
-screen = pygame.display.set_mode([1920, 1080], pygame.RESIZABLE)
+screen = pygame.display.set_mode([1920, 1080], pygame.RESIZABLE, pygame.SRCALPHA)
 
 screen.fill(constants.BG_COLOR)
+
+surface_board = pygame.Surface((1920, 1080), pygame.SRCALPHA, 32)
+surface_pieces = pygame.Surface((1920, 1080), pygame.SRCALPHA, 32)
+surface_temp = pygame.Surface((1920, 1080), pygame.SRCALPHA, 32)
+surface_board = surface_board.convert_alpha()
+surface_pieces = surface_pieces.convert_alpha()
+surface_temp = surface_temp.convert_alpha()
 
 chess_piece_images = {}
 load_images(screen, chess_piece_images)
@@ -690,50 +762,52 @@ load_images(screen, chess_piece_images)
 game = ChessGame(assign_chess_board_values())
 
 draw_chess_board(screen, game.checkered_board)
-draw_chess_pieces(screen, game.board, chess_piece_images)
+draw_chess_pieces(screen, game.board, chess_piece_images, None)
 pygame.display.flip()
 
+moving = None
 
 running = True
-while running:
 
+# TODO clear up the code, remove if nests if possible
+# TODO create an update function that uses surface functions according to flags.
+while running:
     for event in pygame.event.get():
+        if pygame.mouse.get_pressed()[0] and moving is not None:
+            mouse_pos = pygame.mouse.get_pos()
+            drag_and_drop(surface_temp, mouse_pos[0], mouse_pos[1], moving, game.board, chess_piece_images)
+            pygame.display.flip()
         match event.type:
             case pygame.QUIT:
                 running = False
 
             case pygame.VIDEORESIZE:
-                screen.fill(constants.BG_COLOR)
                 load_images(screen, chess_piece_images)
-                draw_chess_board(screen, game.checkered_board)
-                draw_chess_pieces(screen, game.board, chess_piece_images)
-                if game.promotion is not None:
-                    draw_promotion(screen, game.promotion[0], ChessValues(game.turn.value * -1), chess_piece_images)
-                elif game.mate:
-                    announce_winner(screen, ChessValues(game.turn.value * -1))
-                pygame.display.flip()
+                redraw()
 
             case pygame.MOUSEBUTTONDOWN:
                 if game.mate is False:
                     if game.promotion is None:
-                        game.move(click_on_chess_board(screen, event.pos[0], event.pos[1]))
-                        draw_chess_board(screen, game.checkered_board)
-                        draw_chess_pieces(screen, game.board, chess_piece_images)
-                        if game.promotion is not None:
-                            draw_promotion(screen, game.promotion[0],
-                                           ChessValues(game.turn.value * -1), chess_piece_images)
-
-                        elif game.mate:
-                            announce_winner(screen, ChessValues(game.turn.value * -1))
+                        move = click_on_chess_board(screen, event.pos[0], event.pos[1])
+                        if move is not None:
+                            game.move(move)
+                            if game.moving is not None:
+                                moving = move
+                                drag_and_drop(surface_temp, event.pos[0], event.pos[1], moving, game.board,
+                                              chess_piece_images)
                     else:
                         game.promote(click_on_promotion(screen, game.promotion[0],
                                                         event.pos[0], event.pos[1], ChessValues(game.turn.value * -1)))
-                        if game.promotion is None:
-                            screen.fill(constants.BG_COLOR)
-                            draw_chess_board(screen, game.checkered_board)
-                            draw_chess_pieces(screen, game.board, chess_piece_images)
-                    pygame.display.flip()
+                    redraw()
 
-    time.sleep(0.1)
+            case pygame.MOUSEBUTTONUP:
 
+                if moving is not None:
+                    move = click_on_chess_board(screen, event.pos[0], event.pos[1])
+                    if move is not None:
+                        game.move(move)
+                    moving = None
+                    clear_temp(event.pos[0], event.pos[1])
+                    redraw()
+    time.sleep(1 / constants.FPS)
 pygame.quit()
