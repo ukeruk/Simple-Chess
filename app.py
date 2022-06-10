@@ -13,9 +13,7 @@ class ChessValues(Enum):
     WHITE = -1
     EMPTY = 0
     BLACK = 1
-    HIGHLIGHT = 2
     HOVER = 3
-    MOVING = 4
     MOVE_WHITE = 5
     MOVE_BLACK = 6
     CAPTURE = 7
@@ -167,12 +165,13 @@ class King(ChessPiece):
             for i in range(1, 8):
                 if move:
                     if 7 >= self.y + i * j[0] >= 0 and 7 >= self.x + i * j[1] >= 0:
-                        if board[self.y + i * j[0]][self.x + i * j[1]].color is not self.color:
+                        if board[self.y + i * j[0]][self.x + i * j[1]].color.value is -1 * self.color.value:
                             moves.append((i * j[1], i * j[0]))
                         if board[self.y + i * j[0]][self.x + i * j[1]].color != ChessValues.EMPTY:
                             move = False
                     else:
                         move = False
+        print(moves)
         return moves
 
 
@@ -320,61 +319,30 @@ class ChessGame:
                         self.board[i].append(Pawn(color, j, i))
 
     # Manages piece movement
-    def move(self, point):
+    def encaps(self, point):
         if point is not None:
             x = point[0]
             y = point[1]
-
+            self.checkered_board = assign_chess_board_values()
             # Check if piece can move and store the moves
             if self.moving is None:
-                self.cur_moves = []
-                self.cur_captures = []
-                self.checkered_board = assign_chess_board_values()
                 self.show_if_in_check()
                 if self.board[y][x].color == self.turn:
-                    moves = self.board[y][x].available_moves(self.board)
-                    if len(moves) > 0:
-                        can_move = False
-                        self.moving = (x, y)
-                        for move in moves:
-                            copy_board = copy.deepcopy(self.board)
-                            self.move_piece(copy_board, x, y, x + move[0], y + move[1])
-                            # If given move doesn't put itself into check(mate) do:
-                            if self.check_if_in_check(copy_board, self.turn) is None:
-                                # If the move is castling check if it puts you in check(mate). If so, don't add it
-                                if isinstance(self.board[y][x], King) and abs(move[0]) == 2:
-                                    copy_board = copy.deepcopy(self.board)
-                                    if self.castling_in_check(copy_board, x, y, move):
-                                        continue
-                                # Add move to move list. If move captures a piece, add it to capture list
-                                can_move = True
-                                self.cur_moves.append((x + move[0], y + move[1]))
-                                if not isinstance(self.board[y + move[1]][x + move[0]], EmptyPiece):
-                                    self.cur_captures.append((x + move[0], y + move[1]))
-
-                        if can_move:
-                            if self.checkered_board[y][x] == ChessValues.WHITE:
-                                self.checkered_board[y][x] = ChessValues.MOVE_WHITE
-                            else:
-                                self.checkered_board[y][x] = ChessValues.MOVE_BLACK
-                        else:
-                            self.checkered_board[y][x] = ChessValues.NO_MOVES
+                    if self.checkered_board[y][x] == ChessValues.WHITE:
+                        self.checkered_board[y][x] = ChessValues.MOVE_WHITE
                     else:
-                        self.checkered_board[y][x] = ChessValues.NO_MOVES
-
+                        self.checkered_board[y][x] = ChessValues.MOVE_BLACK
+                    self.move(x, y)
             # If chosen location is part of  the available moves, move chosen piece
             else:
                 # Chosen location is invalid - same color piece
                 if self.board[y][x].color == self.turn:
-                    self.checkered_board = assign_chess_board_values()
-                    self.show_if_in_check()
                     self.moving = None
-                    self.move(point)
+                    self.encaps(point)
                 # If chosen location is part of available moves
                 elif (x, y) in self.cur_moves:
                     if self.in_check is not None:
                         self.in_check = None
-                        self.checkered_board = assign_chess_board_values()
                     self.move_piece(self.board, self.moving[0], self.moving[1], x, y)
 
                     self.try_castling(x, y)
@@ -384,7 +352,6 @@ class ChessGame:
                     self.cur_captures = []
 
                     self.moving = None
-                    self.checkered_board = assign_chess_board_values()
                     self.turn = ChessValues(self.turn.value * -1)
 
                     pos = self.check_if_in_check(copy.deepcopy(self.board), self.turn)
@@ -393,6 +360,31 @@ class ChessGame:
                         self.in_check = pos
                         if self.check_if_mate(self.board, self.turn):
                             self.mate = True
+                else:
+                    self.cur_moves = []
+                    self.cur_captures = []
+                    self.show_if_in_check()
+
+    def move(self, x, y):
+        self.cur_moves = []
+        self.cur_captures = []
+        moves = self.board[y][x].available_moves(self.board)
+        if len(moves) > 0:
+            self.moving = (x, y)
+            for move in moves:
+                copy_board = copy.deepcopy(self.board)
+                self.move_piece(copy_board, x, y, x + move[0], y + move[1])
+                # If given move doesn't put itself into check(mate) do:
+                if self.check_if_in_check(copy_board, self.turn) is None:
+                    # If the move is castling check if it puts you in check(mate). If so, don't add it
+                    if isinstance(self.board[y][x], King) and abs(move[0]) == 2:
+                        copy_board = copy.deepcopy(self.board)
+                        if self.castling_in_check(copy_board, x, y, move):
+                            continue
+                    # Add move to move list. If move captures a piece, add it to capture list
+                    self.cur_moves.append((x + move[0], y + move[1]))
+                    if not isinstance(self.board[y + move[1]][x + move[0]], EmptyPiece):
+                        self.cur_captures.append((x + move[0], y + move[1]))
 
     # If current move is a king castling, move accordingly
     def try_castling(self, x, y):
@@ -450,7 +442,7 @@ class ChessGame:
             piece.move(self.promotion[0], self.promotion[1])
             self.promotion = None
 
-    # Checks if a given color on given board is in check
+    # Checks if a given color on a given board is in check
     def check_if_in_check(self, board, color):
         cur_x = cur_y = None
         for j in range(8):
@@ -554,10 +546,6 @@ def draw_chess_board(surface, board):
                     draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
                              width=box_size,
                              height=box_size, color=constants.COLOR_GREEN_MOVE)
-                case ChessValues.MOVING:
-                    draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
-                             width=box_size,
-                             height=box_size, color=constants.COLOR_MOVE)
                 case ChessValues.CAPTURE:
                     draw_box(surface=surface, x=(width_offset + x * box_size), y=(height_offset + box_size * y),
                              width=box_size,
@@ -944,7 +932,7 @@ while running:
                     to_move = click_on_chess_board(screen, event.pos[0], event.pos[1])
                     if to_move is None:
                         break
-                    game.move(to_move)
+                    game.encaps(to_move)
                     if game.board[to_move[1]][to_move[0]].color == game.turn:
                         moving = to_move
                         drag_and_drop(surface_temp, event.pos[0], event.pos[1], moving, game.board, chess_piece_images)
@@ -958,7 +946,7 @@ while running:
                 if moving is not None:
                     to_move = click_on_chess_board(screen, event.pos[0], event.pos[1])
                     if to_move is not None and (to_move == moving or to_move in game.cur_moves):
-                        game.move(to_move)
+                        game.encaps(to_move)
                     moving = None
                     update_flags['clear'] = (event.pos[0], event.pos[1])
                     update_flags['all'] = True
