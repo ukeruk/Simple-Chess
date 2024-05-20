@@ -1,4 +1,3 @@
-# A Pygame Battleship game
 
 # Imports
 import copy
