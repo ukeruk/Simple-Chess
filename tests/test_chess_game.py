@@ -1,5 +1,5 @@
 import pytest
-from app import *
+from main.app import *
 
 def test_check():
     test_chessgame = ChessGame([])
